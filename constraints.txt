@@ -1,0 +1,7 @@
+python-Levenshtein==0.12.2
+tinytag==1.5.0
+eyeD3==0.9.6
+filetype<2.0.0,<=1.0.7
+deprecation<3.0.0,>=2.1.0
+packaging==20.9
+pyparsing==2.4.7

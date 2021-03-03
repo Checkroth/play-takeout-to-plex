@@ -1,39 +1,17 @@
 import argparse
 import csv
+import re
+import html
 from dataclasses import dataclass
 from typing import List, Dict
 from logging import getLogger
 from pathlib import Path
 
+from .songs import SongRecord, SongTags, RecordTagLink
+
+
 
 logger = getLogger(__name__)
-
-
-@dataclass
-class SongRecord:
-    title: str
-    album: str
-    artist: str
-    duration_ms: int
-    rating: int
-    play_count: int
-    removed: bool
-
-    def __post_init__(self):
-        self.duration_ms = int(self.duration_ms)
-        self.rating = int(self.rating)
-        self.play_count = int(self.play_count)
-        self.removed = bool(self.removed)  # TODO:: don't actually know what this is other than empty
-
-    def __str__(self):
-        return ','.join([
-            self.title,
-            self.album,
-            self.artist,
-            str(self.duration_ms),
-            str(self.rating),
-            str(self.play_count),
-            str(self.removed) if self.removed else ''])
 
 
 def fuse_main_csv(full_path: Path) -> List[Dict[str, str]]:
@@ -46,7 +24,7 @@ def fuse_main_csv(full_path: Path) -> List[Dict[str, str]]:
                 fieldnames=['title', 'album', 'artist', 'duration_ms', 'rating', 'play_count', 'removed'],
             )
             next(reader, None)
-            lines.extend([SongRecord(**line) for line in reader])
+            lines.extend([SongRecord(original_csv_name=csv_filename.name, **line) for line in reader])
     return lines
 
 def output_main_csv(main_csv: List[SongRecord], full_path: Path):
@@ -67,8 +45,14 @@ def move_audio_files(full_path: Path, main_csv):
     pass
 
 
-def copy_audio_files(full_path: Path, main_csv):
-    pass
+def copy_audio_files(full_path: Path, main_csv: List[SongRecord]):
+    lines_by_artist_album = defaultdict(dict)
+    for line in main_csv:
+        lines_by_artist_album[line.artist][line.album] = line
+
+    for audiofile in full_path.glob('*'):
+        corresponding_line = lines_by_artist_album
+        pass
 
 
 def main():
