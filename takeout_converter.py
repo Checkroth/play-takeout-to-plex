@@ -42,11 +42,11 @@ def output_main_csv(main_csv: List[SongRecord], full_path: Path):
         outfile.writelines(lines)
 
 
-def move_audio_files(full_path: Path, main_csv):
+def move_audio_files(full_path: Path, main_csv, copy=True):
     pass
 
 
-def copy_audio_files(full_path: Path, main_csv: List[SongRecord]):
+def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord]):
     lines_by_artist_album = defaultdict(dict)
     lost_lines = []
     for line in main_csv:

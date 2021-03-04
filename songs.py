@@ -1,4 +1,5 @@
 import html
+import logging
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -8,6 +9,8 @@ import eyed3
 MAX_FILENAME_LEN = 47
 SHORTENED_FILENAME_LEN = MAX_FILENAME_LEN - 5
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class SongRecord:
@@ -116,32 +119,41 @@ class RecordTagLink:
             import pdb; pdb.set_trace()
             raise Exception('Tag and record from CSV not properly linked')
 
-        tags_updated = False
+        tags_updated = []
         if not self.tags.track and self.tags.title_track_num:
             self.tags.track = self.tags.title_track_num
-            self.tags.audiofile.tag.track_num = self.track
-            tags_updated = True
+            self.tags.audiofile.tag.track_num = self.tags.title_track_num
+            tags_updated.append(self.tags.title_track_num)
 
         if not self.tags.title and self.songrecord.title:
             title = html.unescape(self.songrecord.title)
             self.tags.title = title
             self.tags.audiofile.tag.title = title
-            tags_updated = True
+            tags_updated.append(title)
 
         if not self.tags.album and self.songrecord.album:
             album = html.unescape(self.songrecord.album)
             self.tags.album = album
             self.tags.audiofile.tag.album = album
-            tags_updated = True
+            tags_updated.append(album)
 
         if not self.tags.artist and self.songrecord.artist:
             artist = html.unescape(self.songrecord.artist)
             self.tags.artist = artist
             self.tags.audiofile.tag.artist = artist
-            tags_updated = True
+            tags_updated.append(artist)
 
-        if tags_updated and not self.dry_run:
-            self.audiofile.tag.save()
+        if tags_updated:
+            logger.info(
+                'tags_updated file=%s tags=%s dry_run=%d',
+                self.tags.filepath.name,
+                tags_updated,
+                int(self.dry_run),
+            )
+
+            if not self.dry_run:
+                self.audiofile.tag.save()
+
 
 
 
