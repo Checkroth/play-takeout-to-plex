@@ -1,4 +1,6 @@
 import html
+from pathlib import Path
+from dataclasses import dataclass, field
 
 import eyed3
 
@@ -23,6 +25,9 @@ class SongRecord:
         self.rating = int(self.rating)
         self.play_count = int(self.play_count)
         self.removed = bool(self.removed)  # TODO:: don't actually know what this is other than empty
+        self.title = html.unescape(self.title)
+        self.album = html.unescape(self.album)
+        self.artist = html.unescape(self.artist)
 
     def __str__(self):
         return ','.join([
@@ -35,7 +40,7 @@ class SongRecord:
             str(self.removed) if self.removed else ''])
 
     def _escape(self, s):
-        return re.sub('[^a-zA-Z0-9 \n\.\-]', "_", html.unescape(s))
+        return re.sub('[^a-zA-Z0-9 \n\.\-]', "_", s)
 
     @property
     def expect_songfile(self):
@@ -72,26 +77,19 @@ class SongRecord:
 
 @dataclass
 class SongTags:
-    def __init__(self, filepath: Path, songrecord: SongRecord, dry_run=False):
-        audiofile = eyed3.load(filepath)
-        super(
-            songrecord=songrecord,
-            audiofile=audiofile,
-            filepath=filepath,
-            track=audiofile.tag.track_num,
-            title=audiofile.tag.title,
-            album=audiofile.tag.album,
-            artist=audiofile.tag.artist,
-        )
-        self.dry_run = dry_run
-
-    songrecord: SongRecord
-    audiofile: eyed3.core.AudioFile
     filepath: Path
-    track: int
-    title: str
-    album: str
-    artist: str
+    track: int = field(init=False)
+    title: str = field(init=False) 
+    album: str = field(init=False)
+    artist: str = field(init=False)
+    audiofile: eyed3.core.AudioFile = field(init=False)
+
+    def __post_init__(self):
+        self.audiofile = eyed3.load(self.filepath)
+        self.track = self.audiofile.tag.track_num
+        self.title = self.audiofile.tag.title
+        self.album = self.audiofile.tag.album
+        self.artist = self.audiofile.tag.artist
 
     @property
     def title_track_num(self):
@@ -104,42 +102,46 @@ class SongTags:
 
         return track_num
 
+
+@dataclass
+class RecordTagLink:
+    # TODO:: Move the tag updating based on google audiofile info to here,
+    # so we can fetch tags and search for google CSV without the circular dependency.
+    songrecord: SongRecord
+    tags: SongTags
+    dry_run: bool = True
+
     def __post_init__(self):
+        if (self.songrecord.album, self.songrecord.title) != (self.tags.album, self.tags.title):
+            import pdb; pdb.set_trace()
+            raise Exception('Tag and record from CSV not properly linked')
+
         tags_updated = False
-        if not self.track and self.title_track_num:
-            self.track = self.title_track_num
-            self.audiofile.tag.track_num = self.track
+        if not self.tags.track and self.tags.title_track_num:
+            self.tags.track = self.tags.title_track_num
+            self.tags.audiofile.tag.track_num = self.track
             tags_updated = True
 
-        if not self.title and self.songrecord.title:
+        if not self.tags.title and self.songrecord.title:
             title = html.unescape(self.songrecord.title)
-            self.title = title
-            self.audiofile.tag.title = title
+            self.tags.title = title
+            self.tags.audiofile.tag.title = title
             tags_updated = True
 
-        if not self.album and self.songrecord.album:
+        if not self.tags.album and self.songrecord.album:
             album = html.unescape(self.songrecord.album)
-            self.album = album
-            self.audiofile.tag.album = album
+            self.tags.album = album
+            self.tags.audiofile.tag.album = album
             tags_updated = True
 
-        if not self.artist and self.songrecord.artist:
+        if not self.tags.artist and self.songrecord.artist:
             artist = html.unescape(self.songrecord.artist)
-            self.artist = artist
-            self.audiofile.tag.artist = artist
+            self.tags.artist = artist
+            self.tags.audiofile.tag.artist = artist
             tags_updated = True
 
         if tags_updated and not self.dry_run:
             self.audiofile.tag.save()
 
 
-@dataclass
-class RecordTagLink:
-    # TODO:: Move the tag updating based on google audiofile info to here,
-    # so we can fetch tags and search for google CSV without the circular dependency.
-    record: SongRecord
-    tags: SongTags
 
-    def __post_init__(self):
-        if (self.record.album, self.record.title) != (self.tags.album, self.tags.title):
-            raise Exception('Tag and record from CSV not properly linked')

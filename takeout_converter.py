@@ -2,12 +2,13 @@ import argparse
 import csv
 import re
 import html
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Dict
 from logging import getLogger
 from pathlib import Path
 
-from .songs import SongRecord, SongTags, RecordTagLink
+from songs import SongRecord, SongTags, RecordTagLink
 
 
 
@@ -47,12 +48,33 @@ def move_audio_files(full_path: Path, main_csv):
 
 def copy_audio_files(full_path: Path, main_csv: List[SongRecord]):
     lines_by_artist_album = defaultdict(dict)
+    lost_lines = []
     for line in main_csv:
-        lines_by_artist_album[line.artist][line.album] = line
+        if not line.artist or not line.album:
+            lost_lines.append(line)
+        else:
+            lines_by_artist_album[line.artist][line.album] = line
 
-    for audiofile in full_path.glob('*'):
-        corresponding_line = lines_by_artist_album
-        pass
+    lost_audiofiles = []
+    unmatched_audiofiles = []
+    matched_audiofiles = []
+    for audiofile in full_path.glob('*.mp3'):
+        tags = SongTags(filepath=audiofile)
+        if not tags.artist or not tags.album:
+            lost_audiofiles.append(audiofile)
+            continue
+        corresponding_line = lines_by_artist_album[tags.artist].get(tags.album)
+        if not corresponding_line:
+            unmatched_audiofiles.append(tags)
+            continue
+
+        matched_audiofiles.append(RecordTagLink(songrecord=corresponding_line, tags=tags))
+
+    if any([lost_lines, lost_audiofiles, unmatched_audiofiles]):
+        import pdb; pdb.set_trace()
+        return lost_lines, lost_audiofiles, unmatched_audiofiles
+    else:
+        return matched_audiofiles
 
 
 def main():
