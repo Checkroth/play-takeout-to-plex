@@ -2,6 +2,8 @@ import argparse
 import csv
 import re
 import html
+import os
+import shutil
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Dict
@@ -42,11 +44,28 @@ def output_main_csv(main_csv: List[SongRecord], full_path: Path):
         outfile.writelines(lines)
 
 
-def move_audio_files(full_path: Path, main_csv, copy=True):
-    pass
+def move_audio_files(full_path: Path, tagged_data: List[RecordTagLink], out_path: str, copy: bool = True, dry_run: bool = False):
+    existing_directories = set()
+    import pdb; pdb.set_trace()
+    if dry_run:
+        shutil_command = lambda *args: None
+    else:
+        shutil_command = shutil.copyfile if copy else shutil.move
+
+    for data in tagged_data:
+        target_directory = full_path / data.tags.artist / data.tags.album / f'{data.tags}'
+        if target_directory not in existing_directories:
+            try:
+                if not dry_run:
+                    os.makedirs(target_directory)
+            except FileExistsError:
+                pass
+            existing_directories.add(target_directory)
+
+        shutil_command(data.tags.filepath, target_directory / data.target_filename)
 
 
-def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord]):
+def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord], dry_run: bool):
     lines_by_artist_album = defaultdict(dict)
     lost_lines = []
     for line in main_csv:
@@ -68,7 +87,7 @@ def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord]):
             unmatched_audiofiles.append(tags)
             continue
 
-        matched_audiofiles.append(RecordTagLink(songrecord=corresponding_line, tags=tags))
+        matched_audiofiles.append(RecordTagLink(songrecord=corresponding_line, tags=tags, dry_run=dry_run))
 
     if any([lost_lines, lost_audiofiles, unmatched_audiofiles]):
         import pdb; pdb.set_trace()
@@ -80,28 +99,28 @@ def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord]):
 def main():
     parser = argparse.ArgumentParser(description='Convert google music takeout results to plex-friendly structure')
     parser.add_argument(
-        'takeout-tracks-directory',
+        '--takeout-tracks-directory',
         type=str,
         nargs='?',
         default='testfiles',
         help='The full path to the directory containing the flat list of tracks and corresponding csv files.',
     )
     parser.add_argument(
-        'dry-run',
+        '--dry-run',
         type=bool,
         default=False,
         nargs='?',
         help='Prevent the renaming, removal, or creation of any actual audio files. Will still output the combined CSV file for manul confirmation',
     )
     parser.add_argument(
-        'move-files',
+        '--move-files',
         type=bool,
         default=False,
         nargs='?',
         help='In order to save space during operation, actually move files instead of copying them. If something goes wrong during the command, rolling back will not be possible.'
     )
     parser.add_argument(
-        'main-csv',
+        '--main-csv',
         type=str,
         default='',
         nargs='?',
@@ -110,7 +129,7 @@ def main():
     args = vars(parser.parse_args())
 
     # Validate tracks directory is actually a directory.
-    full_path = Path(args['takeout-tracks-directory'])
+    full_path = Path(args['takeout_tracks_directory'])
     if not full_path.is_dir():
         logger.error('Takeout tracks directory must be a directory. %s is not a directory.', str(full_path.absolute()))
         return
@@ -129,11 +148,12 @@ def main():
         main_csv = fuse_main_csv(full_path)
         output_main_csv(main_csv, full_path)
 
-    if not args.get('dry_run'):
-        if args.get('move_files'):
-            move_audio_files(full_path, main_csv)
-        else:
-            copy_audio_files(full_path, main_csv)
+    fused_with_tags = merge_csv_with_filetags(full_path, main_csv, args.get('dry_run'))
+    if isinstance(fused_with_tags, tuple):
+        logger.error('Failed to match csv with actual files')
+        return
+
+    move_audio_files(full_path, fused_with_tags, 'out', not args.get('move_files'), args.get('dry_run'))
 
 if __name__ == "__main__":
     main()

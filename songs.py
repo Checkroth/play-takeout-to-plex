@@ -114,6 +114,14 @@ class RecordTagLink:
     tags: SongTags
     dry_run: bool = True
 
+    @property
+    def target_filename(self):
+        track_portion = str(self.tags.track).zfill(2) if self.tags.track else None
+        title_portion = self.tags.title or None
+        extension = self.tags.filepath.suffixes[-1] if self.tags.filepath.suffixes else None
+        filename = ' - '.join(filter(None, [track_portion, title_portion]))
+        return '.'.join(filter(None, [filename, extension]))
+
     def __post_init__(self):
         if (self.songrecord.album, self.songrecord.title) != (self.tags.album, self.tags.title):
             import pdb; pdb.set_trace()
