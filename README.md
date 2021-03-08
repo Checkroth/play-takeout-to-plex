@@ -8,7 +8,7 @@ The first step of the tool scrapes all of the google play CSV files and turns th
 
 # Usage
 
-python takeout_converter.py --takeout-tracks-directory <unzipped-takeout-files-dir>
+python takeout_converter.py --takeout-tracks-directory 'google_extract/Takeout/Google Play Music/Tracks/'
 
 ## Options
 
