@@ -1,4 +1,2 @@
 -cconstraints.txt
-python-Levenshtein
-tinytag
 eyeD3
