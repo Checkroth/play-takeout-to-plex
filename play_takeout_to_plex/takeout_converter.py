@@ -122,8 +122,6 @@ def main():
     parser.add_argument(
         '--takeout-tracks-directory',
         type=str,
-        nargs='?',
-        default='testfiles',
         help='The full path to the directory containing the flat list of tracks and corresponding csv files.',
     )
     parser.add_argument(
