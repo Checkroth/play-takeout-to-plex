@@ -98,13 +98,16 @@ class SongTags:
     def title_track_num(self):
         try:
             # Will catch '01', '11', '1 ', etc.
-            track_num = int(self.filepath.name[:2])
+            track_num = int(self.filepath.name.split(' - ')[0])
         except ValueError:
             # Can reasonably say track title does not start with number.
             track_num = None
 
         return track_num
 
+    @property
+    def has_title_extension(self):
+        return bool(Path(self.title).suffixes)
 
 @dataclass
 class RecordTagLink:
@@ -116,11 +119,20 @@ class RecordTagLink:
 
     @property
     def target_filename(self):
-        track_portion = str(self.tags.track).zfill(2) if self.tags.track else None
+        try:
+            if not self.tags.title_track_num:
+                track_portion = str(self.tags.track[0]).zfill(2)
+            else:
+                track_portion = None
+        except IndexError:
+            track_portion = None
+
         title_portion = self.tags.title or None
-        extension = self.tags.filepath.suffixes[-1] if self.tags.filepath.suffixes else None
+        extension = (self.tags.filepath.suffixes[-1]
+                     if self.tags.filepath.suffixes and not self.tags.has_title_extension
+                     else None)
         filename = ' - '.join(filter(None, [track_portion, title_portion]))
-        return '.'.join(filter(None, [filename, extension]))
+        return ''.join(filter(None, [filename, extension]))
 
     def __post_init__(self):
         if (self.songrecord.album, self.songrecord.title) != (self.tags.album, self.tags.title):
