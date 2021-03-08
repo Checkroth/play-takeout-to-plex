@@ -27,7 +27,7 @@ class SongRecord:
         self.duration_ms = int(self.duration_ms)
         self.rating = int(self.rating)
         self.play_count = int(self.play_count)
-        self.removed = bool(self.removed)  # TODO:: don't actually know what this is other than empty
+        self.removed = bool(self.removed)
         self.title = html.unescape(self.title)
         self.album = html.unescape(self.album)
         self.artist = html.unescape(self.artist)
@@ -98,9 +98,9 @@ class SongTags:
     def title_track_num(self):
         try:
             # Will catch '01', '11', '1 ', etc.
-            track_num = int(self.filepath.name.split(' - ')[0])
+            track_num = int(self.title.split(' - ')[0])
         except ValueError:
-            # Can reasonably say track title does not start with number.
+            # Can reasonably say track title does not start with the track number.
             track_num = None
 
         return track_num
@@ -109,10 +109,9 @@ class SongTags:
     def has_title_extension(self):
         return bool(Path(self.title).suffixes)
 
+
 @dataclass
 class RecordTagLink:
-    # TODO:: Move the tag updating based on google audiofile info to here,
-    # so we can fetch tags and search for google CSV without the circular dependency.
     songrecord: SongRecord
     tags: SongTags
     dry_run: bool = True
@@ -173,7 +172,3 @@ class RecordTagLink:
 
             if not self.dry_run:
                 self.audiofile.tag.save()
-
-
-
-

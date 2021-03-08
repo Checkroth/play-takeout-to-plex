@@ -45,12 +45,20 @@ def output_main_csv(main_csv: List[SongRecord], full_path: Path):
 
 
 def move_audio_files(target_path: Path, tagged_data: List[RecordTagLink], out_path: str, copy: bool = True, dry_run: bool = False):
+    '''
+    Actually move or copy files.
+    Loops twice despite being possible to do in one loop to prevent data loss
+    '''
     existing_directories = set()
     if dry_run:
         shutil_command = lambda *args: None
     else:
         shutil_command = shutil.copyfile if copy else shutil.move
 
+    origins = []
+    targets = []
+    duplicate_origins = []
+    duplicate_targets = []
     for data in tagged_data:
         target_directory = target_path / data.tags.artist / data.tags.album
         if target_directory not in existing_directories:
@@ -61,8 +69,24 @@ def move_audio_files(target_path: Path, tagged_data: List[RecordTagLink], out_pa
                 pass
             existing_directories.add(target_directory)
 
-        shutil_command(data.tags.filepath, target_directory / data.target_filename)
+        origin = data.tags.filepath
+        target = target_directory / data.target_filename
+        if origin in origins:
+            duplicate_origins.append(origin)
+        if target in targets:
+            duplicate_targets.append(target)
+        origins.append(origin)
+        targets.append(target)
 
+    if duplicate_targets:
+        logger.error('Duplicates targets found. File copy (or move) cannot continue until '
+                     'the duplicates are addressed manually. Targets with multiple sources include: %s',
+                     str(duplicate_targets))
+    elif duplicate_origins:
+        raise ValueError('Duplicate origins found. This is a programming error, as each file should only be processed once.')
+
+    for origin, target in zip(origins, targets):
+        shutil_command(origin, target)
 
 def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord], dry_run: bool):
     lines_by_artist_album = defaultdict(dict)
@@ -87,7 +111,6 @@ def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord], dry_run
             continue
 
         matched_audiofiles.append(RecordTagLink(songrecord=corresponding_line, tags=tags, dry_run=dry_run))
-
     if any([lost_lines, lost_audiofiles, unmatched_audiofiles]):
         return lost_lines, lost_audiofiles, unmatched_audiofiles
     else:
