@@ -10,7 +10,7 @@ from typing import List, Dict
 from logging import getLogger
 from pathlib import Path
 
-from songs import SongRecord, SongTags, RecordTagLink
+from .songs import SongRecord, SongTags, RecordTagLink
 
 
 
@@ -180,6 +180,3 @@ def main():
         return
 
     move_audio_files(Path(args['output_directory']), fused_with_tags, 'out', not args.get('move_files'), args.get('dry_run'))
-
-if __name__ == "__main__":
-    main()
