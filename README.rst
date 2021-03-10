@@ -18,14 +18,32 @@ Usage
 Options
 =================================
 
-.. csv-table:: Frozen Delights!
-   :header: "name", "type", "required", "description"
+.. list-table:: Options
 
-   "takeout-tracks-directory", "string", "yes", "the directory containing extracted takeout files (audio files and csv files)"
-   "dry-run", "any value", "no" "skip actually operating on files if anything is passed. Will still output the main-csv file."
-   "move-files", "any value", "no", "moves files instead of copying them. Useful if you have limited space."
-   "main-csv", "string", "no", "filepath to a csv that combines all play takeout files. Mostly for debugging. CSV that can be used here is output by the program."
-   "output-directory", "string", "no", "Directory to which to move or copy the audio files. defaults to 'out'"
+   * - name
+     - type
+     - required
+     - description
+   * - takeout-tracks-directory
+     - string
+     - yes
+     - the directory containing extracted takeout files (audio files and csv files
+   * - dry-run
+     - any value
+     - no
+     - skip actually operating on files if anything is passed. Will still output the main-csv file.
+   * - move-files
+     - any value
+     - no
+     - moves files instead of copying them. Useful if you have limited space.
+   * - main-csv
+     - string
+     - no
+     - filepath to a csv that combines all play takeout files. Mostly for debugging. CSV that can be used here is output by the program.
+   * - output-directory
+     - string
+     - no
+     - Directory to which to move or copy the audio files. defaults to 'out'
 
 =================================
 Output
