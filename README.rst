@@ -19,6 +19,7 @@ Options
 =================================
 
 .. list-table:: Options
+   :header-rows: 1
 
    * - name
      - type
