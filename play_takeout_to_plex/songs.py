@@ -43,7 +43,7 @@ class SongRecord:
             str(self.removed) if self.removed else ''])
 
     def _escape(self, s):
-        return re.sub('[^a-zA-Z0-9 \n\.\-]', "_", s)
+        return re.sub('[^a-zA-Z0-9 \\n\.\-]', "_", s)
 
     @property
     def expect_songfile(self):
