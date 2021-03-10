@@ -8,12 +8,12 @@ repository = "https://github.com/Checkroth/play-takeout-to-plex"
 keywords = ["music", "google", "play", "plex"]
 classifiers = [
     "Programming Language :: Python :: 3.7",
-		"Development Status :: 3 - Alpha",
-		"Environment :: Console",
-		"Intended Audience :: Developers",
-		"Natural Language :: English",
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
     "Operating System :: OS Independent",
-		"Topic :: Utilities",
+    "Topic :: Utilities",
 ]
 
 [tool.poetry.dependencies]
