@@ -21,7 +21,8 @@ python = "^3.8"
 eyed3 = "^0.9.6"
 
 [tool.poetry.dev-dependencies]
-pytest = "^4.6"
+pytest = "6.2.2"
+pytest-mock = "^3.5.1"
 
 [tool.poetry.scripts]
 play2plex = 'play_takeout_to_plex:main'
