@@ -1,20 +1,21 @@
 import argparse
 import csv
-import re
 import html
+import logging
 import os
+import re
 import shutil
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Dict
-from logging import getLogger
 from pathlib import Path
 
 from .songs import SongRecord, SongTags, RecordTagLink
 
 
 
-logger = getLogger(__name__)
+logging.basicConfig(format='%(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def fuse_main_csv(full_path: Path) -> List[Dict[str, str]]:
@@ -119,9 +120,12 @@ def merge_csv_with_filetags(full_path: Path, main_csv: List[SongRecord], dry_run
 
 def main():
     parser = argparse.ArgumentParser(description='Convert google music takeout results to plex-friendly structure')
-    parser.add_argument(
+    requiredNamed = parser.add_argument_group('required named arguments')
+    requiredNamed.add_argument(
+        '-i',
         '--takeout-tracks-directory',
         type=str,
+        required=True,
         help='The full path to the directory containing the flat list of tracks and corresponding csv files.',
     )
     parser.add_argument(

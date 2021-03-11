@@ -24,7 +24,7 @@ eyed3 = "^0.9.6"
 pytest = "^4.6"
 
 [tool.poetry.scripts]
-play_takeout_to_plex = 'play_takeout_to_plex.main'
+play2plex = 'play_takeout_to_plex:main'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
