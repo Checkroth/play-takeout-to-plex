@@ -25,7 +25,7 @@ Options
      - type
      - required
      - description
-   * - takeout-tracks-directory
+   * - -i/--takeout-tracks-directory
      - string
      - yes
      - the directory containing extracted takeout files (audio files and csv files
