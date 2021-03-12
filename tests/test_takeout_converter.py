@@ -67,3 +67,31 @@ class TestOutputMainCsv:
 
         file_handler.assert_called_with(Path('testpath/main_csv.csv'), 'w')
         mock_file.writelines.assert_called_once_with(expect)
+
+
+class TestMergeCsvWithFiletags:
+    @pytest.fixture
+    def target(self):
+        from play_takeout_to_plex.takeout_converter import merge_csv_with_filetags
+        return merge_csv_with_filetags
+
+    def test_valid(self, mocker, target):
+        assert True
+
+    def test_has_lost_lines(self, mocker, target):
+        pass
+
+    def test_has_lost_audiofiles(self, mocker, target):
+        pass
+
+    def test_has_unmatched_audiofiles(self, mocker, taret):
+        pass
+
+class TestMoveAudioFiles:
+    @pytest.fixture
+    def target(self):
+        from play_takeout_to_plex.takeout_converter import move_audio_files
+        return move_audio_files
+
+    def test_valid(self, mocker, target):
+        assert True
