@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Dict
@@ -27,8 +28,15 @@ def fuse_main_csv(full_path: Path) -> List[Dict[str, str]]:
                 csv_in,
                 fieldnames=['title', 'album', 'artist', 'duration_ms', 'rating', 'play_count', 'removed'],
             )
-            next(reader, None)
-            lines.extend([SongRecord(original_csv_name=csv_filename.name, **line) for line in reader])
+            try:
+                next(reader)
+                lines.extend([SongRecord(original_csv_name=csv_filename.name, **line) for line in reader])
+            except StopIteration:
+                logger.error('All csv files must begin with header')
+                return None
+            except TypeError:
+                logger.error('CSV files are not in expected format.')
+                return None
     return lines
 
 def output_main_csv(main_csv: List[SongRecord], full_path: Path):
@@ -39,7 +47,7 @@ def output_main_csv(main_csv: List[SongRecord], full_path: Path):
      'Rating': '0',
      'Play Count': '0',
      'Removed': ''}
-    with open('main_csv.csv', 'w') as outfile:
+    with open(full_path / 'main_csv.csv', 'w') as outfile:
         header = ['Title,Album,Artist,Duration (ms),Rating,Play Count,Removed']
         lines = '\n'.join(header + [str(line) for line in main_csv])
         outfile.writelines(lines)
@@ -162,7 +170,7 @@ def main():
     full_path = Path(args['takeout_tracks_directory'])
     if not full_path.is_dir():
         logger.error('Takeout tracks directory must be a directory. %s is not a directory.', str(full_path.absolute()))
-        return
+        sys.exit(1)
 
     # Validate the main csv is actually a file if it was specified
     main_csv = Path(args['main-csv']) if args.get('main-csv') else None
@@ -172,15 +180,17 @@ def main():
             use_main_csv = True
         else:
             logger.error('Main CSV file must be a csv file. %s is not a csv file.', str(main_csv.absolute()))
-            return
+            sys.exit(1)
 
     if not use_main_csv:
         main_csv = fuse_main_csv(full_path)
+        if not main_csv:
+            sys.exit(1)
         output_main_csv(main_csv, full_path)
 
     fused_with_tags = merge_csv_with_filetags(full_path, main_csv, args.get('dry_run'))
     if isinstance(fused_with_tags, tuple):
         logger.error('Failed to match csv with actual files')
-        return
+        sys.exit(1)
 
     move_audio_files(Path(args['output_directory']), fused_with_tags, 'out', not args.get('move_files'), args.get('dry_run'))

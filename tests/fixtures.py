@@ -2,7 +2,7 @@ from io import StringIO
 from play_takeout_to_plex.songs import SongRecord
 
 
-HEADER_ROW = 'Title,Album,Artist,Duration (ms),Rating,Play Count,Removed\r\n'
+HEADER_ROW = 'Title,Album,Artist,Duration (ms),Rating,Play Count,Removed\n'
 CSV_RECORDS = [
     SongRecord(title='03 - I Shot The Sheriff.mp3', album='Live From London', artist='Bob Marley',
                duration_ms=314000, rating=0, play_count=1, removed=False, original_csv_name=''),
