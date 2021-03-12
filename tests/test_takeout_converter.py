@@ -1,8 +1,17 @@
+from copy import deepcopy
 from io import StringIO
 from pathlib import Path
 
 import pytest
-from .fixtures import HEADER_ROW, CSV_FILES, CSV_RECORDS
+from play_takeout_to_plex.songs import RecordTagLink, SongTags, SongRecord
+from .fixtures import (
+    HEADER_ROW,
+    CSV_FILES,
+    CSV_RECORDS,
+    AUDIO_FILES,
+    MockAudiofile,
+    MockAudiofileTags,
+)
 
 @pytest.fixture
 def mock_csv_dir(mocker):
@@ -75,17 +84,56 @@ class TestMergeCsvWithFiletags:
         from play_takeout_to_plex.takeout_converter import merge_csv_with_filetags
         return merge_csv_with_filetags
 
-    def test_valid(self, mocker, target):
-        assert True
+    @pytest.fixture
+    def mock_eyed3(self, mocker):
+        eyed3 = mocker.patch('play_takeout_to_plex.songs.eyed3')
+        return eyed3
 
-    def test_has_lost_lines(self, mocker, target):
-        pass
+    def test_valid(self, mock_eyed3, mock_path, target):
+        mock_eyed3.load.side_effect = AUDIO_FILES * 2
+        mock_path.glob.return_value = [''] * len(AUDIO_FILES)  # Override path mock for ease of testing
 
-    def test_has_lost_audiofiles(self, mocker, target):
-        pass
+        res = target(mock_path, CSV_RECORDS, False)
+        expect = [RecordTagLink(songrecord=record, tags=SongTags(filepath=''), dry_run=False)
+                  for (record, audiofile) in zip(CSV_RECORDS, AUDIO_FILES)]
+        mock_eyed3.load.side_effect = AUDIO_FILES * 2
+        assert res == expect
 
-    def test_has_unmatched_audiofiles(self, mocker, taret):
-        pass
+    def test_has_lost_lines(self, mock_eyed3, mock_path, target):
+        mock_eyed3.load.side_effect = AUDIO_FILES * 2
+        mock_path.glob.return_value = [''] * len(AUDIO_FILES)
+
+        records = deepcopy(CSV_RECORDS)
+        lost_record = SongRecord(title='Test title', album='', artist='',
+                                 duration_ms=123, rating=0, play_count=0, removed=False, original_csv_name='')
+        records.append(lost_record)
+        lost_lines, lost_audiofiles, unmatched_audiofiles = target(mock_path, records, False)
+        assert lost_lines == [lost_record]
+        assert lost_audiofiles == []
+        assert unmatched_audiofiles == []
+
+    def test_has_lost_audiofiles(self, mock_eyed3, mock_path, target):
+        lost_audiofile = MockAudiofile(MockAudiofileTags(1, 'Lost Song', '', 'Lost Artist'))
+        mock_eyed3.load.side_effect = [lost_audiofile] + (AUDIO_FILES * 2)
+        mock_path.glob.return_value = ['lost'] * len(AUDIO_FILES)
+
+        lost_lines, lost_audiofiles, unmatched_audiofiles = target(mock_path, CSV_RECORDS, False)
+        assert lost_lines == []
+        assert lost_audiofiles == ['lost']
+        assert unmatched_audiofiles == []
+
+
+    def test_has_unmatched_audiofiles(self, mock_eyed3, mock_path, target):
+        unmatched_audiofile = MockAudiofile(MockAudiofileTags(1, 'Lost Song', 'Unmatched Album', 'Bob Marley'))
+        mock_eyed3.load.side_effect =  [unmatched_audiofile] + (AUDIO_FILES * 2)
+        mock_path.glob.return_value = [''] * len(AUDIO_FILES)
+
+        lost_lines, lost_audiofiles, unmatched_audiofiles = target(mock_path, CSV_RECORDS, False)
+        assert lost_lines == []
+        assert lost_audiofiles == []
+        expect = SongTags(unmatched_audiofile)
+        assert unmatched_audiofiles
+
 
 class TestMoveAudioFiles:
     @pytest.fixture

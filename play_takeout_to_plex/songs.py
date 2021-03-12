@@ -43,7 +43,7 @@ class SongRecord:
             str(self.removed) if self.removed else ''])
 
     def _escape(self, s):
-        return re.sub('[^a-zA-Z0-9 \\n\.\-]', "_", s)
+        return re.sub('[^a-zA-Z0-9 \\n\\.-]', "_", s)
 
     @property
     def expect_songfile(self):
@@ -135,7 +135,6 @@ class RecordTagLink:
 
     def __post_init__(self):
         if (self.songrecord.album, self.songrecord.title) != (self.tags.album, self.tags.title):
-            import pdb; pdb.set_trace()
             raise Exception('Tag and record from CSV not properly linked')
 
         tags_updated = []
