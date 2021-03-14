@@ -10,6 +10,7 @@ from .fixtures import (
     CSV_FILES,
     CSV_RECORDS,
     AUDIO_FILES,
+    AUDIO_TAGS,
     RECORD_LINKS,
     MockAudiofile,
     MockAudiofileTags,
@@ -145,43 +146,90 @@ class TestMoveAudioFiles:
 
     @pytest.fixture
     def mock_shutil(self, mocker):
-        return mocker.patch('takeout_converter.shutil')
+        return mocker.patch('play_takeout_to_plex.takeout_converter.shutil')
 
     @pytest.fixture
     def expect_out_filenames(self):
+        outpath = Path('testpath')
         return [
-            Path('Bob Marley/Live From London/03 - I Shot The Sheriff.mp3'),
-            Path('Bob Marley/Burnin\'/05 - I Shot The Sheriff.mp3'),
-            Path('Bob Marley/Live at Rockpalast/05 - I Shot The Sheriff.mp3'),
-            Path('Bob Marley/Live!/06 - I Shot The Sheriff.mp3'),
-            Path('Bob Marley/Live at the Lyceum/06 - I Shot The Sheriff.mp3'),
-            Path('Bob Marley/Legend/07 - I Shot The Sheriff.mp3'),
-            Path('OK Go/OK Go/09 - C-C-C-Cinnamon Lips.mp3'),
-            Path('Weird Al Yankovic/Poodle Hat/01 - Couch Potato.mp3'),
-            Path('Porcupine Tree/Straight Outta Lynwood/07 - Open Car.mp3'),
-            Path('Weird Al Yankovic/Straight Outta Lynwood/01 - White & Nerdy.mp3'),
+            outpath / 'Bob Marley/Live From London/03 - I Shot The Sheriff.mp3',
+            outpath / 'Bob Marley/Burnin\'/05 - I Shot The Sheriff.mp3',
+            outpath / 'Bob Marley/Live at Rockpalast/05 - I Shot The Sheriff.mp3',
+            outpath / 'Bob Marley/Live!/06 - I Shot The Sheriff.mp3',
+            outpath / 'Bob Marley/Live at the Lyceum/06 - I Shot The Sheriff.mp3',
+            outpath / 'Bob Marley/Legend/07 - I Shot The Sheriff.mp3',
+            outpath / 'OK Go/OK Go/09 - C-C-C-Cinnamon Lips.mp3',
+            outpath / 'Weird Al Yankovic/Poodle Hat/01 - Couch Potato.mp3',
+            outpath / 'Porcupine Tree/Deadwing/07 - Open Car.mp3',
+            outpath / 'Weird Al Yankovic/Straight Outta Lynwood/01 - White & Nerdy.mp3',
         ]
 
     @pytest.fixture
     def expect_in_filenames(self):
         return [
-            Path('testpath') / 'origin' / record.tile
-            for record in CSV_RECORDS
+            tag.filepath
+            for tag in AUDIO_TAGS
         ]
 
-    def test_move_valid(self, mock_shutil, expect_in_filenames, expect_out_filenames, target):
-        origin = 'testpath'
-        outpath = 'out'
-        target(
-            target_path=origin,
-            tagged_data=RECORD_LINKS,
-            out_path=outpath,
-            copy=False,
-            dry_run=False,
-        )
-
-        assert mock_shutil.move.mock_calls == [
+    @pytest.fixture
+    def expect_calls(self, expect_in_filenames, expect_out_filenames):
+        return [
             call(origin, target)
             for origin, target
             in zip(expect_in_filenames, expect_out_filenames)
         ]
+
+    def test_move_valid(self, mock_shutil, expect_calls, target):
+        outpath = Path('testpath')
+        target(
+            target_path=outpath,
+            tagged_data=RECORD_LINKS,
+            copy=False,
+            dry_run=False,
+        )
+        assert mock_shutil.move.mock_calls == expect_calls
+        mock_shutil.copy.assert_not_called()
+
+    def test_copy_valid(self, mock_shutil, expect_calls, target):
+        outpath = Path('testpath')
+        target(
+            target_path=outpath,
+            tagged_data=RECORD_LINKS,
+            copy=True,
+            dry_run=False,
+        )
+        assert mock_shutil.copyfile.mock_calls == expect_calls
+        mock_shutil.move.assert_not_called()
+
+    @pytest.mark.parametrize('copy', [True, False])
+    def test_dry_run_valid(self, mock_shutil, expect_calls, copy, target):
+        outpath = Path('testpath')
+        target(
+            target_path=outpath,
+            tagged_data=RECORD_LINKS,
+            copy=copy,
+            dry_run=True,
+        )
+
+        mock_shutil.move.assert_not_called()
+        mock_shutil.copyfile.assert_not_called()
+
+    @pytest.mark.parametrize('copy', [True, False])
+    def test_duplicate_origins_fails(self, mock_shutil, copy, target):
+        outpath = Path('testpath')
+        duplicate_data = RECORD_LINKS[0]
+        duplicate_data.title = 'new title!'
+        data = RECORD_LINKS + [duplicate_data]
+        with pytest.raises(ValueError):
+            target(
+                target_path=outpath,
+                tagged_data=data,
+                copy=copy,
+                dry_run=False,
+            )
+
+        mock_shutil.move.assert_not_called()
+        mock_shutil.copyfile.assert_not_called()
+
+    def test_duplicate_targets_fails(self):
+        pass

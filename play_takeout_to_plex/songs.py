@@ -88,7 +88,7 @@ class SongTags:
     album: str = field(init=False)
     artist: str = field(init=False)
     audiofile: eyed3.core.AudioFile = field(init=False)
-    pull_tags: bool = False
+    pull_tags: bool = True
 
     def __post_init__(self):
         if self.pull_tags:
@@ -124,7 +124,7 @@ class RecordTagLink:
     def target_filename(self):
         try:
             if not self.tags.title_track_num:
-                track_portion = str(self.tags.track[0]).zfill(2)
+                track_portion = str(self.tags.track)[0].zfill(2)
             else:
                 track_portion = None
         except IndexError:

@@ -66,8 +66,9 @@ AUDIO_FILES = [
 
 
 AUDIO_TAGS = [
+    # Hack to bypass eyed3 tag pulling but stil have dataclass attributes set
     SongTags(
-        filepath=Path('origin') / f'{record.tag.title}.mp3',
+        filepath=Path('origin') / record.tag.album / f'{record.tag.title}.mp3',
         pull_tags=False,
     ) for record in AUDIO_FILES
 ]

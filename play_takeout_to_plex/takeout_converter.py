@@ -52,7 +52,6 @@ def output_main_csv(main_csv: List[SongRecord], full_path: Path):
 
 def move_audio_files(target_path: Path,
                      tagged_data: List[RecordTagLink],
-                     out_path: str,
                      copy: bool = True,
                      dry_run: bool = False):
     '''
@@ -93,6 +92,8 @@ def move_audio_files(target_path: Path,
         logger.error('Duplicates targets found. File copy (or move) cannot continue until '
                      'the duplicates are addressed manually. Targets with multiple sources include: %s',
                      str(duplicate_targets))
+        return
+
     elif duplicate_origins:
         raise ValueError(
             'Duplicate origins found. This is a programming error, '
@@ -210,6 +211,6 @@ def main():
     move_audio_files(
         Path(args['output_directory']),
         fused_with_tags,
-        'out',
-        not args.get('move_files'), args.get('dry_run'),
+        not args.get('move_files'),
+        args.get('dry_run'),
     )
