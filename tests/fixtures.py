@@ -1,6 +1,7 @@
+from pathlib import Path
 from dataclasses import dataclass
 from io import StringIO
-from play_takeout_to_plex.songs import SongRecord
+from play_takeout_to_plex.songs import SongRecord, SongTags, RecordTagLink
 
 
 @dataclass
@@ -61,4 +62,23 @@ AUDIO_FILES = [
     MockAudiofile(MockAudiofileTags(1, 'Couch Potato', 'Poodle Hat', 'Weird Al Yankovic')),
     MockAudiofile(MockAudiofileTags(7, 'Open Car', 'Deadwing', 'Porcupine Tree')),
     MockAudiofile(MockAudiofileTags(1, 'White & Nerdy', 'Straight Outta Lynwood', 'Weird Al Yankovic')),
+]
+
+
+AUDIO_TAGS = [
+    SongTags(
+        filepath=Path('origin') / f'{record.tag.title}.mp3',
+        pull_tags=False,
+    ) for record in AUDIO_FILES
+]
+for tag, record in zip(AUDIO_TAGS, AUDIO_FILES):
+    tag.track = record.tag.track
+    tag.title = record.tag.title
+    tag.album = record.tag.album
+    tag.artist = record.tag.artist
+
+
+RECORD_LINKS = [
+    RecordTagLink(songrecord=record, tags=tags)
+    for record, tags in zip(CSV_RECORDS, AUDIO_TAGS)
 ]

@@ -1,5 +1,6 @@
 import html
 import logging
+import re
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -11,6 +12,7 @@ SHORTENED_FILENAME_LEN = MAX_FILENAME_LEN - 5
 
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class SongRecord:
@@ -47,12 +49,12 @@ class SongRecord:
 
     @property
     def expect_songfile(self):
-        return f'{self.artist} - {self._escape(album)} - {self._escape(title)}'
+        return f'{self.artist} - {self._escape(self.album)} - {self._escape(self.title)}'
 
     @property
     def expect_songfile_start(self):
         '''
-        Song filenames will Be in two formats. 
+        Song filenames will Be in two formats.
         - Artist - Album - Title.mp3
         - Artist - Album(###)shortened_title.mp3
 
@@ -68,13 +70,13 @@ class SongRecord:
         -> Weird Al Yankovic - Straight Outta Lynwood(###) = 47,
             Cannot guess the # in the filename, so starts with up to Lynwood(
         '''
-        raw_start = f'{self.artist} - {self._escape(album)}'
+        raw_start = f'{self.artist} - {self._escape(self.album)}'
         if len(raw_start) > SHORTENED_FILENAME_LEN:
             filestart = raw_start[:SHORTENED_FILENAME_LEN]
             filestart = f'{filestart}('
         else:
             filestart = raw_start
-        
+
         return filestart
 
 
@@ -82,17 +84,19 @@ class SongRecord:
 class SongTags:
     filepath: Path
     track: int = field(init=False)
-    title: str = field(init=False) 
+    title: str = field(init=False)
     album: str = field(init=False)
     artist: str = field(init=False)
     audiofile: eyed3.core.AudioFile = field(init=False)
+    pull_tags: bool = False
 
     def __post_init__(self):
-        self.audiofile = eyed3.load(self.filepath)
-        self.track = self.audiofile.tag.track_num
-        self.title = self.audiofile.tag.title
-        self.album = self.audiofile.tag.album
-        self.artist = self.audiofile.tag.artist
+        if self.pull_tags:
+            self.audiofile = eyed3.load(self.filepath)
+            self.track = self.audiofile.tag.track_num
+            self.title = self.audiofile.tag.title
+            self.album = self.audiofile.tag.album
+            self.artist = self.audiofile.tag.artist
 
     @property
     def title_track_num(self):

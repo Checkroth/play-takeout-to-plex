@@ -1,3 +1,4 @@
+from unittest.mock import call
 from copy import deepcopy
 from io import StringIO
 from pathlib import Path
@@ -9,9 +10,11 @@ from .fixtures import (
     CSV_FILES,
     CSV_RECORDS,
     AUDIO_FILES,
+    RECORD_LINKS,
     MockAudiofile,
     MockAudiofileTags,
 )
+
 
 @pytest.fixture
 def mock_csv_dir(mocker):
@@ -122,16 +125,15 @@ class TestMergeCsvWithFiletags:
         assert lost_audiofiles == ['lost']
         assert unmatched_audiofiles == []
 
-
     def test_has_unmatched_audiofiles(self, mock_eyed3, mock_path, target):
-        unmatched_audiofile = MockAudiofile(MockAudiofileTags(1, 'Lost Song', 'Unmatched Album', 'Bob Marley'))
-        mock_eyed3.load.side_effect =  [unmatched_audiofile] + (AUDIO_FILES * 2)
+        unmatched_audiofile = MockAudiofile(
+            MockAudiofileTags(1, 'Lost Song', 'Unmatched Album', 'Bob Marley'))
+        mock_eyed3.load.side_effect = [unmatched_audiofile] + (AUDIO_FILES * 2)
         mock_path.glob.return_value = [''] * len(AUDIO_FILES)
 
         lost_lines, lost_audiofiles, unmatched_audiofiles = target(mock_path, CSV_RECORDS, False)
         assert lost_lines == []
         assert lost_audiofiles == []
-        expect = SongTags(unmatched_audiofile)
         assert unmatched_audiofiles
 
 
@@ -141,5 +143,45 @@ class TestMoveAudioFiles:
         from play_takeout_to_plex.takeout_converter import move_audio_files
         return move_audio_files
 
-    def test_valid(self, mocker, target):
-        assert True
+    @pytest.fixture
+    def mock_shutil(self, mocker):
+        return mocker.patch('takeout_converter.shutil')
+
+    @pytest.fixture
+    def expect_out_filenames(self):
+        return [
+            Path('Bob Marley/Live From London/03 - I Shot The Sheriff.mp3'),
+            Path('Bob Marley/Burnin\'/05 - I Shot The Sheriff.mp3'),
+            Path('Bob Marley/Live at Rockpalast/05 - I Shot The Sheriff.mp3'),
+            Path('Bob Marley/Live!/06 - I Shot The Sheriff.mp3'),
+            Path('Bob Marley/Live at the Lyceum/06 - I Shot The Sheriff.mp3'),
+            Path('Bob Marley/Legend/07 - I Shot The Sheriff.mp3'),
+            Path('OK Go/OK Go/09 - C-C-C-Cinnamon Lips.mp3'),
+            Path('Weird Al Yankovic/Poodle Hat/01 - Couch Potato.mp3'),
+            Path('Porcupine Tree/Straight Outta Lynwood/07 - Open Car.mp3'),
+            Path('Weird Al Yankovic/Straight Outta Lynwood/01 - White & Nerdy.mp3'),
+        ]
+
+    @pytest.fixture
+    def expect_in_filenames(self):
+        return [
+            Path('testpath') / 'origin' / record.tile
+            for record in CSV_RECORDS
+        ]
+
+    def test_move_valid(self, mock_shutil, expect_in_filenames, expect_out_filenames, target):
+        origin = 'testpath'
+        outpath = 'out'
+        target(
+            target_path=origin,
+            tagged_data=RECORD_LINKS,
+            out_path=outpath,
+            copy=False,
+            dry_run=False,
+        )
+
+        assert mock_shutil.move.mock_calls == [
+            call(origin, target)
+            for origin, target
+            in zip(expect_in_filenames, expect_out_filenames)
+        ]
