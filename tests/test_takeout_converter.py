@@ -214,8 +214,8 @@ class TestMoveAudioFiles:
         mock_shutil.move.assert_not_called()
         mock_shutil.copyfile.assert_not_called()
 
-    @pytest.mark.parametrize('copy', [True, False])
-    def test_duplicate_origins_fails(self, mock_shutil, copy, target):
+    # @pytest.mark.parametrize('copy', [True, False])
+    def test_duplicate_origins_fails(self, mock_shutil, target):
         outpath = Path('testpath')
         duplicate_data = RECORD_LINKS[0]
         duplicate_data.title = 'new title!'
@@ -224,7 +224,7 @@ class TestMoveAudioFiles:
             target(
                 target_path=outpath,
                 tagged_data=data,
-                copy=copy,
+                copy=False,
                 dry_run=False,
             )
 
