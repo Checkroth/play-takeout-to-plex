@@ -77,6 +77,7 @@ for tag, record in zip(AUDIO_TAGS, AUDIO_FILES):
     tag.title = record.tag.title
     tag.album = record.tag.album
     tag.artist = record.tag.artist
+    tag.audiofile = None
 
 
 RECORD_LINKS = [

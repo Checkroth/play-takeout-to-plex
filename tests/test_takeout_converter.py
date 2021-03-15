@@ -214,22 +214,82 @@ class TestMoveAudioFiles:
         mock_shutil.move.assert_not_called()
         mock_shutil.copyfile.assert_not_called()
 
-    # @pytest.mark.parametrize('copy', [True, False])
-    def test_duplicate_origins_fails(self, mock_shutil, target):
+    @pytest.mark.parametrize('copy', [True, False])
+    def test_duplicate_origins_fails(self, mock_shutil, copy, target):
         outpath = Path('testpath')
-        duplicate_data = RECORD_LINKS[0]
-        duplicate_data.title = 'new title!'
-        data = RECORD_LINKS + [duplicate_data]
+        data = deepcopy(RECORD_LINKS)
+        duplicate_data = deepcopy(RECORD_LINKS[0])
+        duplicate_data.tags.title = 'new title!'
+        data.append(duplicate_data)
         with pytest.raises(ValueError):
             target(
                 target_path=outpath,
                 tagged_data=data,
-                copy=False,
+                copy=copy,
                 dry_run=False,
             )
 
         mock_shutil.move.assert_not_called()
         mock_shutil.copyfile.assert_not_called()
 
-    def test_duplicate_targets_fails(self):
-        pass
+    @pytest.mark.parametrize('copy', [True, False])
+    def test_duplicate_targets_fails(self, mock_shutil, copy, target):
+        outpath = Path('testpath')
+        data = deepcopy(RECORD_LINKS)
+        duplicate_data = RECORD_LINKS[0]
+        duplicate_data.tags.filepath = Path('new/file.mp3')
+        data.append(duplicate_data)
+        res = target(
+                target_path=outpath,
+                tagged_data=data,
+                copy=copy,
+                dry_run=False,
+            )
+
+        assert res is None
+        mock_shutil.move.assert_not_called()
+        mock_shutil.copyfile.assert_not_called()
+
+
+class TestMainValid:
+    @pytest.fixture
+    def target(self):
+        from play_takeout_to_plex.takeout_converter import main
+        return main
+
+    @pytest.fixture
+    def mock_merge(self, mocker):
+        return mocker.patch('play_takeout_to_plex.takeout_converter.merge_csv_with_filetags')
+
+    @pytest.fixture
+    def mock_fuse(self, mocker):
+        return mocker.patch('play_takeout_to_plex.takeout_converter.fuse_main_csv')
+
+    @pytest.fixture
+    def mock_move(self, mocker):
+        return mocker.patch('play_takeout_to_plex.takeout_converter.move_audio_files')
+
+    @pytest.fixture
+    def mock_output(self, mocker):
+        return mocker.patch('play_takeout_to_plex.takeout_converter.output_main_csv')
+
+    @pytest.fixture
+    def mock_args(self, mocker):
+        mock_argparse = mocker.patch('play_takeout_to_plex.takeout_converter.argparse')
+        mock_parser = mocker.Mock()
+
+        def mock(ret):
+            mock_parser.parse_args.return_value = ret
+
+        mock_argparse.ArgumentParser.return_value = mock_parser
+        return mock_parser
+
+    def test_valid(self, mocker, mock_merge, mock_fuse, mock_move, mock_path, mock_args, target):
+        args = {
+            'takeout_tracks_directory': '/',
+            'main_csv': None,
+            'output-directory': 'out',
+        }
+        mock_args(args)
+        with mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=True):
+            target()

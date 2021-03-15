@@ -179,6 +179,7 @@ def main():
     args = vars(parser.parse_args())
 
     # Validate tracks directory is actually a directory.
+    import pdb; pdb.set_trace()
     full_path = Path(args['takeout_tracks_directory'])
     if not full_path.is_dir():
         logger.error(
@@ -188,7 +189,7 @@ def main():
         sys.exit(1)
 
     # Validate the main csv is actually a file if it was specified
-    main_csv = Path(args['main-csv']) if args.get('main-csv') else None
+    main_csv = Path(args['main_csv']) if args.get('main_csv') else None
     use_main_csv = False
     if main_csv:
         if main_csv.is_file():
