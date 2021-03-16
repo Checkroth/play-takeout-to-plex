@@ -2,6 +2,14 @@
 Google Play Music Takeout to Plex
 =================================
 
+.. image:: https://img.shields.io/pypi/v/play-takeout-to-plex.svg
+   :alt: PyPI
+   :target: http://pypi.org/p/play-takeout-to-plex
+.. image:: https://img.shields.io/github/license/checkroth/play-takeout-to-plex.svg
+   :alt: License
+   :target: https://github.com/Checkroth/play-takeout-to-plex/blob/main/LICENSE
+
+
 A tool for restructuring Google Play Music Takeout to a plex (and human)-friendly format.
 
 This tool comes with zero garuntees. I recommend testing on a small subset of audio files before attempting it on a full takeout library.
