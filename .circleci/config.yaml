@@ -1,0 +1,32 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  build-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache
+      - python/install-packages:
+          pkg-manager: poetry
+      - python/save-cache
+      - test:
+          command: |
+              poetry run tox -e py38
+          name: Test
+      - coverage:
+          command: |
+              poetry run tox -e coverage
+          name: Coverage
+      - flake8:
+          command: |
+              poetry run tox -e flake8
+          name: flake8
+          
+
+workflows:
+  main:
+    jobs:
+      - build-and-test
