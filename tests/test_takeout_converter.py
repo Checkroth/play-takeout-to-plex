@@ -317,6 +317,7 @@ class TestMainValid:
                                       mock_output,
                                       mock_args,
                                       all_mocks,
+                                      mock_logger,
                                       target):
         cmd_args = {
             'takeout_tracks_directory': 'notadir',
@@ -340,19 +341,40 @@ class TestMainValid:
                                   mock_output,
                                   mock_args,
                                   all_mocks,
+                                  mock_logger,
                                   target):
-        pass
+        cmd_args = {
+            'takeout_tracks_directory': 'Songs',
+            'main_csv': 'maincsv.csv',
+            'output_directory': 'out',
+        }
+        mock_args(cmd_args)
+        mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=True)
+        mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_file', return_value=False)
+        with pytest.raises(SystemExit):
+            target()
+        mock_logger.error.assert_called_once_with(
+            'Main CSV file must be a csv file. %s is not a csv file.', str(Path('maincsv.csv').absolute()))
 
-    def test_main_csv_invalid_not_csv(self,
-                                      mocker,
-                                      mock_merge,
-                                      mock_fuse,
-                                      mock_move,
-                                      mock_output,
-                                      mock_args,
-                                      all_mocks,
-                                      target):
-        pass
+    def test_csv_file_create_main_fusion_failure(self,
+                                                 mocker,
+                                                 mock_merge,
+                                                 mock_fuse,
+                                                 mock_move,
+                                                 mock_output,
+                                                 mock_args,
+                                                 all_mocks,
+                                                 target):
+        cmd_args = {
+            'takeout_tracks_directory': 'Songs',
+            'main_csv': None,
+            'output_directory': 'out',
+        }
+        mock_args(cmd_args)
+        mock_fuse.return_value = None
+        mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=True)
+        with pytest.raises(SystemExit):
+            target()
 
     def test_csv_file_merge_failure(self,
                                     mocker,
@@ -362,5 +384,17 @@ class TestMainValid:
                                     mock_output,
                                     mock_args,
                                     all_mocks,
+                                    mock_logger,
                                     target):
-        pass
+        cmd_args = {
+            'takeout_tracks_directory': 'Songs',
+            'main_csv': None,
+            'output_directory': 'out',
+        }
+        mock_args(cmd_args)
+        mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=True)
+        mock_merge.return_value = (None, None, ['errors_list'])
+        with pytest.raises(SystemExit):
+            target()
+
+        mock_logger.error.assert_called_once_with('Failed to match csv with actual files')

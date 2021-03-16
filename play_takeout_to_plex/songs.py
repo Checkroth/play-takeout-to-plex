@@ -1,6 +1,5 @@
 import html
 import logging
-import re
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -44,41 +43,6 @@ class SongRecord:
             str(self.play_count),
             str(self.removed) if self.removed else ''])
 
-    def _escape(self, s):
-        return re.sub('[^a-zA-Z0-9 \\n\\.-]', "_", s)
-
-    @property
-    def expect_songfile(self):
-        return f'{self.artist} - {self._escape(self.album)} - {self._escape(self.title)}'
-
-    @property
-    def expect_songfile_start(self):
-        '''
-        Song filenames will Be in two formats.
-        - Artist - Album - Title.mp3
-        - Artist - Album(###)shortened_title.mp3
-
-        For organizational purposes, we only care about the portion up to the album.
-        Calculation for the latter must be done in the event that
-            the artist & album name is longer than MAX_FILENAME_LEN.
-
-        The latter occurs when the full filename is greater than MAX_FILENAME_LEN.
-        Filename is then calculated as follows:
-        "song artist - album" up to MAX_FILENAME_LEN - 5 length + (
-        Ex.: Weird Al Yankovic - Straight Outta Lynwood - White _ Nerdy = 58
-        -> Weird Al Yankovic - Straight Outta Lynwood = 42 ( 47 - 5 )
-        -> Weird Al Yankovic - Straight Outta Lynwood(###) = 47,
-            Cannot guess the # in the filename, so starts with up to Lynwood(
-        '''
-        raw_start = f'{self.artist} - {self._escape(self.album)}'
-        if len(raw_start) > SHORTENED_FILENAME_LEN:
-            filestart = raw_start[:SHORTENED_FILENAME_LEN]
-            filestart = f'{filestart}('
-        else:
-            filestart = raw_start
-
-        return filestart
-
 
 @dataclass
 class SongTags:
@@ -93,7 +57,11 @@ class SongTags:
     def __post_init__(self):
         if self.pull_tags:
             self.audiofile = eyed3.load(self.filepath)
-            self.track = self.audiofile.tag.track_num
+            try:
+                # 2-tuple (track_num, total_tracks)
+                self.track = self.audiofile.tag.track_num[0]
+            except (IndexError, TypeError):
+                self.track = self.audiofile.tag.track_num
             self.title = self.audiofile.tag.title
             self.album = self.audiofile.tag.album
             self.artist = self.audiofile.tag.artist
@@ -124,13 +92,18 @@ class RecordTagLink:
     def target_filename(self):
         try:
             if not self.tags.title_track_num:
-                track_portion = str(self.tags.track)[0].zfill(2)
+                # Prepend the track number to the track only if it isn't already there.
+                track_portion = self.tags.track
+                title_portion = self.tags.title
             else:
-                track_portion = None
+                track_portion = self.tags.title_track_num
+                title_portion = self.tags.title.split(' - ', 1)[-1]
         except IndexError:
             track_portion = None
+            title_portion = self.tags.title
 
-        title_portion = self.tags.title or None
+        if track_portion:
+            track_portion = str(track_portion).zfill(2)
         extension = (self.tags.filepath.suffixes[-1]
                      if self.tags.filepath.suffixes and not self.tags.has_title_extension
                      else None)
@@ -138,7 +111,8 @@ class RecordTagLink:
         return ''.join(filter(None, [filename, extension]))
 
     def __post_init__(self):
-        if (self.songrecord.album, self.songrecord.title) != (self.tags.album, self.tags.title):
+        if ((self.songrecord.artist, self.songrecord.album, self.songrecord.title)
+                != (self.tags.artist, self.tags.album, self.tags.title)):
             raise Exception('Tag and record from CSV not properly linked')
 
         tags_updated = []
@@ -146,24 +120,6 @@ class RecordTagLink:
             self.tags.track = self.tags.title_track_num
             self.tags.audiofile.tag.track_num = self.tags.title_track_num
             tags_updated.append(self.tags.title_track_num)
-
-        if not self.tags.title and self.songrecord.title:
-            title = html.unescape(self.songrecord.title)
-            self.tags.title = title
-            self.tags.audiofile.tag.title = title
-            tags_updated.append(title)
-
-        if not self.tags.album and self.songrecord.album:
-            album = html.unescape(self.songrecord.album)
-            self.tags.album = album
-            self.tags.audiofile.tag.album = album
-            tags_updated.append(album)
-
-        if not self.tags.artist and self.songrecord.artist:
-            artist = html.unescape(self.songrecord.artist)
-            self.tags.artist = artist
-            self.tags.audiofile.tag.artist = artist
-            tags_updated.append(artist)
 
         if tags_updated:
             logger.info(
@@ -174,4 +130,4 @@ class RecordTagLink:
             )
 
             if not self.dry_run:
-                self.audiofile.tag.save()
+                self.tags.audiofile.tag.save()

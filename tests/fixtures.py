@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 from pathlib import Path
 from dataclasses import dataclass
 from io import StringIO
@@ -14,6 +16,9 @@ class MockAudiofileTags:
     @property
     def track(self):
         return self.track_num
+
+    def __post_init__(self):
+        self.save = Mock()
 
 
 @dataclass

@@ -189,15 +189,12 @@ def main():
 
     # Validate the main csv is actually a file if it was specified
     main_csv = Path(cmd_args['main_csv']) if cmd_args.get('main_csv') else None
-    use_main_csv = False
     if main_csv:
-        if main_csv.is_file():
-            use_main_csv = True
-        else:
+        if not main_csv.is_file():
             logger.error('Main CSV file must be a csv file. %s is not a csv file.', str(main_csv.absolute()))
             sys.exit(1)
 
-    if not use_main_csv:
+    if not main_csv:
         main_csv = fuse_main_csv(full_path)
         if not main_csv:
             sys.exit(1)
