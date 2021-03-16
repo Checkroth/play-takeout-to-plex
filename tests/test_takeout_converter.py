@@ -274,6 +274,11 @@ class TestMainValid:
         return mocker.patch('play_takeout_to_plex.takeout_converter.output_main_csv')
 
     @pytest.fixture
+    def all_mocks(self, mock_merge, mock_fuse, mock_move, mock_output):
+        '''Simple helper to mock away all utilities without repeating long args lists'''
+        return
+
+    @pytest.fixture
     def mock_args(self, mocker):
         from argparse import Namespace
         mock_argparse = mocker.patch('play_takeout_to_plex.takeout_converter.argparse')
@@ -291,15 +296,71 @@ class TestMainValid:
                    mock_merge,
                    mock_fuse,
                    mock_move,
-                   mock_path,
-                   mock_args,
                    mock_output,
+                   mock_args,
+                   all_mocks,
                    target):
         cmd_args = {
-            'takeout_tracks_directory': '/',
+            'takeout_tracks_directory': 'Songs',
             'main_csv': None,
             'output_directory': 'out',
         }
         mock_args(cmd_args)
-        with mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=True):
+        mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=True)
+        target()
+
+    def test_takeout_tracks_dne_error(self,
+                                      mocker,
+                                      mock_merge,
+                                      mock_fuse,
+                                      mock_move,
+                                      mock_output,
+                                      mock_args,
+                                      all_mocks,
+                                      target):
+        cmd_args = {
+            'takeout_tracks_directory': 'notadir',
+            'main_csv': None,
+            'output_directory': 'out',
+        }
+        mock_args(cmd_args)
+        mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=False)
+        with pytest.raises(SystemExit):
             target()
+        mock_logger.error.assert_called_once_with(
+            'Takeout tracks directory must be a directory. %s is not a directory.',
+            str(Path('notadir').absolute()),
+        )
+
+    def test_main_csv_invalid_dne(self,
+                                  mocker,
+                                  mock_merge,
+                                  mock_fuse,
+                                  mock_move,
+                                  mock_output,
+                                  mock_args,
+                                  all_mocks,
+                                  target):
+        pass
+
+    def test_main_csv_invalid_not_csv(self,
+                                      mocker,
+                                      mock_merge,
+                                      mock_fuse,
+                                      mock_move,
+                                      mock_output,
+                                      mock_args,
+                                      all_mocks,
+                                      target):
+        pass
+
+    def test_csv_file_merge_failure(self,
+                                    mocker,
+                                    mock_merge,
+                                    mock_fuse,
+                                    mock_move,
+                                    mock_output,
+                                    mock_args,
+                                    all_mocks,
+                                    target):
+        pass
