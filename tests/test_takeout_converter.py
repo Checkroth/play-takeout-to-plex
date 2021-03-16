@@ -275,21 +275,31 @@ class TestMainValid:
 
     @pytest.fixture
     def mock_args(self, mocker):
+        from argparse import Namespace
         mock_argparse = mocker.patch('play_takeout_to_plex.takeout_converter.argparse')
         mock_parser = mocker.Mock()
 
         def mock(ret):
-            mock_parser.parse_args.return_value = ret
+            mock_parser.parse_args.return_value = Namespace(**ret)
+            return mock_parser
 
         mock_argparse.ArgumentParser.return_value = mock_parser
-        return mock_parser
+        return mock
 
-    def test_valid(self, mocker, mock_merge, mock_fuse, mock_move, mock_path, mock_args, target):
-        args = {
+    def test_valid(self,
+                   mocker,
+                   mock_merge,
+                   mock_fuse,
+                   mock_move,
+                   mock_path,
+                   mock_args,
+                   mock_output,
+                   target):
+        cmd_args = {
             'takeout_tracks_directory': '/',
             'main_csv': None,
-            'output-directory': 'out',
+            'output_directory': 'out',
         }
-        mock_args(args)
+        mock_args(cmd_args)
         with mocker.patch('play_takeout_to_plex.takeout_converter.Path.is_dir', return_value=True):
             target()

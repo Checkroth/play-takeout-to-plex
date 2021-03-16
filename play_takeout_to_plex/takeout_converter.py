@@ -176,11 +176,10 @@ def main():
         help=('Specify the parent directory under which to create the '
               'new artist/album directories in to which to move the audio files.'),
     )
-    args = vars(parser.parse_args())
+    cmd_args = vars(parser.parse_args())
 
     # Validate tracks directory is actually a directory.
-    import pdb; pdb.set_trace()
-    full_path = Path(args['takeout_tracks_directory'])
+    full_path = Path(cmd_args['takeout_tracks_directory'])
     if not full_path.is_dir():
         logger.error(
             'Takeout tracks directory must be a directory. %s is not a directory.',
@@ -189,7 +188,7 @@ def main():
         sys.exit(1)
 
     # Validate the main csv is actually a file if it was specified
-    main_csv = Path(args['main_csv']) if args.get('main_csv') else None
+    main_csv = Path(cmd_args['main_csv']) if cmd_args.get('main_csv') else None
     use_main_csv = False
     if main_csv:
         if main_csv.is_file():
@@ -204,14 +203,14 @@ def main():
             sys.exit(1)
         output_main_csv(main_csv, full_path)
 
-    fused_with_tags = merge_csv_with_filetags(full_path, main_csv, args.get('dry_run'))
+    fused_with_tags = merge_csv_with_filetags(full_path, main_csv, cmd_args.get('dry_run'))
     if isinstance(fused_with_tags, tuple):
         logger.error('Failed to match csv with actual files')
         sys.exit(1)
 
     move_audio_files(
-        Path(args['output_directory']),
+        Path(cmd_args['output_directory']),
         fused_with_tags,
-        not args.get('move_files'),
-        args.get('dry_run'),
+        not cmd_args.get('move_files'),
+        cmd_args.get('dry_run'),
     )
