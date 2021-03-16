@@ -8,19 +8,17 @@ jobs:
     executor: python/default
     steps:
       - checkout
-      - python/load-cache
       - python/install-packages:
           pkg-manager: poetry
-      - python/save-cache
-      - test:
+      - run:
           command: |
               poetry run tox -e py38
           name: Test
-      - coverage:
+      - run:
           command: |
               poetry run tox -e coverage
           name: Coverage
-      - flake8:
+      - run:
           command: |
               poetry run tox -e flake8
           name: flake8
